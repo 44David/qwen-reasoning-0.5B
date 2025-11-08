@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, get_constant_schedule_with_warmup
 import random
 import torch 
+import torch.nn.functional as F 
+
 
 class SCoTDDataset(Dataset):
     def __init__(self, data, tokenizer, max_length=512):
@@ -55,6 +57,47 @@ def main():
 
     print(f"Total trainable parameters: {trainable_params_count:,}")
     
+    epochs = 3
+    train_step = 0
+    total_train_steps = epochs * len(dataloader) // gradient_accumulation_steps
+    gradient_accumulation = 32
+    gradient_accumulation_steps = 32 / batch_size 
     
+    optim = torch.optim.Adam(model.parameters(), lr=1e-4)
+    scheduler = get_constant_schedule_with_warmup(
+        optim, 
+        num_warmup_steps=total_train_steps // 10,
+        num_training_steps=total_train_steps
+    )
+    
+    wandb.init(
+        project="qwen-reasoning-0.5B"
+    )
+    
+    
+    model.train()
+    
+    for epoch in range(epochs):
+        for step, batch in enumerate(dataloader):
+            batch = batch.to(torch.device)
+            with torch.amp.autocast("cuda", dtype=torch.bfloat16):
+                out = model(**batch)
+                loss = F.cross_entropy(out.logits, batch["target"]) / gradient_accumulation
+                loss.backward()
+                
+            if step%gradient_accumulation_steps == 0:
+                wandb.log({
+                    "train/loss": loss.item() * gradient_accumulation_steps,
+                    "train/learning_rate": scheduler.get_last_lr()[0],
+                    "train/step": train_step,
+                    "train/epoch": epoch,
+                })
+                
+                optim.step()
+                scheduler.step()
+                optim.zero_grad()
+                train_step += 1
+                
+            
     
 main()
