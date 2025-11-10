@@ -56,6 +56,7 @@ def validate(model, validate_dataloader):
 
 
 def main():
+    print("loading dataset")
     ds = load_dataset("44David/SCoTD-deepseek-math-7B")
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B")
     batch_size = 8
@@ -103,7 +104,7 @@ def main():
     for param in model.model.layers[config.layer_freeze:].parameters(): param.requires_grad = True
     
     trainable_params_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
+    
     print(f"Total trainable parameters: {trainable_params_count:,}")
     
     train_step = 0
@@ -154,6 +155,7 @@ def main():
     torch.save({
         'model_state_dict': model.state_dict(),
         'config': config,
+        "qwen_reasoning_500M.pth"
     })
     
     wandb.finish()
