@@ -1,4 +1,3 @@
-from os import truncate
 import wandb
 from datasets import load_dataset
 from torch.utils.data import DataLoader, Dataset, random_split
@@ -16,23 +15,25 @@ class SCoTDDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_length = max_length
         
+        for sample in data:
+            thinking_trace = random.choice(sample["thinking_traces"])
+            
+            tokenized_input = self.tokenizer( sample["problem"], max_length=self.max_length, padding='max_length', truncation=True)
+            tokenized_target = self.tokenizer(thinking_trace, max_length=self.max_length, padding='max_length', truncation=True)
+                        
+            sample = {
+                'input_ids': tokenized_input["input_ids"],
+                'target': tokenized_target["input_ids"],
+            }
+                        
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
-        sample = self.data[idx]
-        thinking_trace = random.choice(sample["thinking_traces"])
-        
-        sample = f"{sample["problem"]} {thinking_trace}"
-        
-        tokenized_input = self.tokenizer( sample, max_length=self.max_length, padding='max_length', truncation=True)
-        tokenized_target = self.tokenizer(thinking_trace, max_length=self.max_length, padding='max_length', truncation=True)
-        
-        return {
-            'input_ids': tokenized_input["input_ids"],
-            'target': tokenized_target["input_ids"],
-        }
-
+        return { 
+            'input_ids': sample[idx]['input_ids'],
+            'target': sample[idx]['target'],
+        }        
 
 def compute_loss(x, y):
     return F.cross_entropy(x.view(-1, x.shape[-1]), y.view(-1))
@@ -104,7 +105,7 @@ def main():
     for param in model.model.layers[config.layer_freeze:].parameters(): param.requires_grad = True
     
     trainable_params_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
+
     print(f"Total trainable parameters: {trainable_params_count:,}")
     
     train_step = 0
@@ -121,7 +122,6 @@ def main():
         job_type="train",
         config=config
     )
-    
     
     model.train()
     progress_bar = tqdm(total=config.total_train_steps[0])
@@ -155,8 +155,7 @@ def main():
     torch.save({
         'model_state_dict': model.state_dict(),
         'config': config,
-        "qwen_reasoning_500M.pth"
-    })
+    }, "qwen_reasoning_500M.pth")
     
     wandb.finish()
     
