@@ -31,8 +31,8 @@ class SCoTDDataset(Dataset):
     
     def __getitem__(self, idx):
         return { 
-            'input_ids': sample[idx]['input_ids'],
-            'target': sample[idx]['target'],
+            'input_ids': self.data[idx]['input_ids'],
+            'target': self.data[idx]['target'],
         }        
 
 def compute_loss(x, y):
