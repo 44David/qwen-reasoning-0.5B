@@ -54,7 +54,7 @@ def validate(model, validate_dataloader):
             
     wandb.log({
         "validate/loss": loss.item(),
-        "validate/perplexity": torch.exp(loss.item())
+        "validate/perplexity": torch.exp(loss)
     })
     
     model.train()
@@ -131,6 +131,8 @@ def main():
     progress_bar = tqdm(total=config.total_train_steps[0])
     for epoch in range(config.epochs):
         for step, batch in enumerate(train_dataloader):
+            
+            batch = {k: v.to("cuda") for k, v in batch.items()}
             with torch.amp.autocast("cuda", dtype=torch.bfloat16):
                 out = model(**batch)
                 loss = compute_loss(out.logits, batch["target"]) / config.gradient_accumulation
@@ -139,7 +141,7 @@ def main():
             if step%config.gradient_accumulation_steps == 0:
                 wandb.log({
                     "train/loss": loss.item() * config.gradient_accumulation_steps,
-                    "train/perplexity": torch.exp(loss.item()),
+                    "train/perplexity": torch.exp(loss),
                     "train/learning_rate": scheduler.get_last_lr()[0],
                     "train/step": train_step,
                     "train/epoch": epoch,
