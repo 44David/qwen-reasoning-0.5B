@@ -11,25 +11,29 @@ from tqdm import tqdm
 
 class SCoTDDataset(Dataset):
     def __init__(self, data, tokenizer, max_length=1024):
-        self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
         
-        for sample in data:
+        def tokenize_sample(sample):
             thinking_trace = random.choice(sample["thinking_traces"])
             
-            tokenized_input = self.tokenizer( sample["problem"], max_length=self.max_length, padding='max_length', truncation=True)
+            tokenized_input = self.tokenizer(sample["problem"], max_length=self.max_length, padding='max_length', truncation=True)
             tokenized_target = self.tokenizer(thinking_trace, max_length=self.max_length, padding='max_length', truncation=True)
-                        
-            sample = {
-                'input_ids': tokenized_input["input_ids"],
-                'target': tokenized_target["input_ids"],
+            
+            return {
+                "input_ids": tokenized_input["input_ids"],
+                "target": tokenized_target["input_ids"]
             }
+            
+        
+        self.data = data.map(tokenize_sample)
+            
                         
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
+        
         return { 
             'input_ids': self.data[idx]['input_ids'],
             'target': self.data[idx]['target'],
