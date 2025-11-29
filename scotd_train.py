@@ -104,6 +104,8 @@ def main():
         dtype=torch.bfloat16
     )
     
+    model = model.to("cuda")
+    
     for param in model.parameters(): param.requires_grad = False
     for param in model.lm_head.parameters(): param.requires_grad = False
     for param in model.model.layers[config.layer_freeze:].parameters(): param.requires_grad = True
@@ -131,7 +133,7 @@ def main():
     progress_bar = tqdm(total=config.total_train_steps[0])
     for epoch in range(config.epochs):
         for step, batch in enumerate(train_dataloader):
-            
+        
             batch = {k: v.to("cuda") for k, v in batch.items()}
             with torch.amp.autocast("cuda", dtype=torch.bfloat16):
                 out = model(**batch)

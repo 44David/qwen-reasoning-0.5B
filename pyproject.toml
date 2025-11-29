@@ -1,7 +1,7 @@
 [project]
-name = "srm-0-5b"
+name = "qwen-reasoning-0.5b"
 version = "0.1.0"
-description = "Add your description here"
+description = "Distilling reasoning capabilities into small models using SCoTD and GRPO"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -11,5 +11,6 @@ dependencies = [
     "torchmetrics>=1.8.2",
     "tqdm>=4.67.1",
     "transformers>=4.57.1",
+    "trl>=0.25.1",
     "wandb>=0.22.3",
 ]
