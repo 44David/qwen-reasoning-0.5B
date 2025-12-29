@@ -4,7 +4,6 @@ from datasets import load_dataset
 from trl import SFTConfig, SFTTrainer
 from types import SimpleNamespace
 
-
 device = "cuda"
 
 # create config for wandb and sft
@@ -12,7 +11,7 @@ config = SimpleNamespace(
     train_type=f"qwen-reason-0.5B/sft",
     base_model="Qwen/Qwen2.5-0.5B",
     lr=5e-5,
-    batch_size=4,
+    batch_size=2,
     gradient_accumulation_steps=2,
     checkpoint_steps=500,
     max_steps=5000,
@@ -57,7 +56,7 @@ train_conf = SFTConfig(
     save_total_limit=3,
     eval_strategy="steps",
     eval_steps=500,
-    max_seq_length=config.max_seq_length,
+    max_length=config.max_seq_length,
     bf16=True,
     dataset_text_field="text",
     report_to="wandb"
