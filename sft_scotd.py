@@ -11,11 +11,11 @@ config = SimpleNamespace(
     train_type=f"qwen-reason-0.5B/sft",
     base_model="Qwen/Qwen2.5-0.5B",
     lr=1e-6,
-    batch_size=2,
-    gradient_accumulation_steps=2,
+    batch_size=16,
+    gradient_accumulation_steps=4,
     checkpoint_steps=500,
     max_steps=5000,
-    max_seq_length=1024
+    max_seq_length=2048
 )
 
 ds = load_dataset("qwedsacf/competition_math")
@@ -59,6 +59,8 @@ train_conf = SFTConfig(
     max_length=config.max_seq_length,
     bf16=True,
     dataset_text_field="text",
+    max_grad_norm=1.0,
+    gradient_checkpointing=True,
     report_to="wandb"
 )
 
