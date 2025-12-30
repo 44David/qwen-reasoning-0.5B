@@ -1,3 +1,13 @@
+import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+import torch
+import gc
+
+# clear runpod cache
+torch.cuda.empty_cache()
+gc.collect()
+
 import wandb
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
@@ -11,11 +21,11 @@ config = SimpleNamespace(
     train_type=f"qwen-reason-0.5B/sft",
     base_model="Qwen/Qwen2.5-0.5B",
     lr=1e-6,
-    batch_size=8,
+    batch_size=6,
     gradient_accumulation_steps=2,
     checkpoint_steps=500,
     max_steps=5000,
-    max_seq_length=2048
+    max_seq_length=1536
 )
 
 ds = load_dataset("qwedsacf/competition_math")
