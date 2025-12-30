@@ -37,6 +37,7 @@ wandb.init(
     config=config
 )
 
+
 model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-0.5B").to(device)
 tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B")
 
@@ -84,12 +85,6 @@ trainer = SFTTrainer(
     processing_class=tokenizer,
 )
 
-trainer.train()
-
-# save_model saves weights, config 
-trainer.save_model("./qwen_reasoning_500M/model")
-
-# saves tokenizer config
-trainer.save_pretrained("./qwen_reasoning_500M/model")
+trainer.train(resume_from_checkpoint=True)
 
 wandb.finish()
