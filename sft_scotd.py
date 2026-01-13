@@ -3,6 +3,8 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 import torch
 import gc
+import re
+import glob
 
 # clear runpod cache
 torch.cuda.empty_cache()
@@ -20,15 +22,15 @@ device = "cuda"
 config = SimpleNamespace(
     train_type=f"qwen-reason-0.5B/sft",
     base_model="Qwen/Qwen2.5-0.5B",
-    lr=1e-6,
+    lr=5e-5,
     batch_size=6,
     gradient_accumulation_steps=2,
     checkpoint_steps=500,
     max_steps=5000,
-    max_seq_length=1536
+    max_seq_length=3072
 )
 
-ds = load_dataset("qwedsacf/competition_math")
+ds = load_dataset("44David/gsm8k-reasoning-traces")
 
 wandb.init(
     project="qwen-reasoning-0.5B", 
@@ -48,8 +50,20 @@ tokenizer.padding_side = "right"
 
 
 def format_prompt(example):
+    # Remove <<>> annotations and #### marker
+    answer_clean = re.sub(r'<<[^>]+>>', '', example['answer'])
+    answer_clean = answer_clean.split('####')[0].strip()
+    
+    messages = [
+        {"role": "user", "content": example['problem']},
+        {"role": "assistant", "content": f"<think>{example['reasoning']}</think>\n\n{answer_clean}"}
+    ]
     return {
-        "text": f"Problem: {example['problem']}\n\nSolution: {example['solution']}"
+        "text": tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=False
+        )
     }
     
 ds = ds.map(format_prompt, remove_columns=ds['train'].column_names)
@@ -85,6 +99,16 @@ trainer = SFTTrainer(
     processing_class=tokenizer,
 )
 
-trainer.train(resume_from_checkpoint=True)
+
+checkpoints = glob.glob("./qwen_reasoning_500M/checkpoint-*")
+
+if checkpoints:
+    latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('-')[-1]))
+    resume_path = latest_checkpoint
+    
+else:
+    resume_path = None
+
+trainer.train(resume_from_checkpoint=resume_path)
 
 wandb.finish()
