@@ -2,3 +2,5 @@
 /.venv
 uv.lock
 .python-version
+/qwen_reasoning_500M_v1
+inference.py
